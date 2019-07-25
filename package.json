@@ -1,0 +1,29 @@
+{
+  "name": "split-merge-pbf",
+  "version": "0.0.1",
+  "description": "Split and Merge Video File with pdf format from potplayer",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kunbai/split-merge-pbf.git"
+  },
+  "keywords": [
+    "node",
+    "ffmpeg",
+    "pbf"
+  ],
+  "author": "kunbai jang",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kunbai/split-merge-pbf/issues"
+  },
+  "homepage": "https://github.com/kunbai/split-merge-pbf#readme",
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2",
+    "gearman": "^2.1.0",
+    "optimist": "^0.6.1"
+  }
+}
