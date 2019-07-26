@@ -146,6 +146,7 @@ async.waterfall([
                 return ecallback2()
               })
               .output(path.join(outputPath, spInfo.fileName))
+              .renice(15)
               .run()
           }, (err) => {
             return wcallback2(err)
@@ -182,7 +183,8 @@ async.waterfall([
             .on('end', function(stdout, stderr) {              
               console.log('Spliting succeeded: ' + info.movieFileName)
               return wcallback2()
-            })            
+            })
+            .renice(15)
             .mergeToFile(outputFile)
         },
         (wcallback2) => {
