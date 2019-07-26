@@ -3,7 +3,18 @@
 /**
  * Module dependencies.
  */
+const async = require('async')
 
+
+
+async.waterfall([
+  // get argunemts
+  (wcallback) => {
+
+  }
+], (err) => {
+
+})
 
 
 // console.log(process.argv)
@@ -182,44 +193,44 @@ var mergeVieo = function(info) {
   info.splitInfo.forEach((spInfo) => {
     for (let i = 0, max = spInfo.repeat; i < max; i++) {
       // console.log("hfsdhfkhsdkfiusd" + spInfo.fileName + '  | ' + i)
-      command.input(path.join(outputPath,spInfo.fileName))
+      command.input(path.join(outputPath, spInfo.fileName))
     }
   })
 
   command
-  .on('start', function(commandLine) {
-    // console.log('Spawned Ffmpeg with command: ' + commandLine)
-    console.info('Start Merging: ' + info.movieFileName)
-  })
-  .on('progress', function(progress) {
-    if (progress % 10 === 0)
-      console.log('Processing: ' + progress.percent + '% done')
-  })
-  .on('codecData', function(data) {
-    console.log('Input Codec is ' + data.audio + ' audio ' +
-      'with ' + data.video + ' video');
-  })
-  .on('error', function(err, stdout, stderr) {
-    commandIdx++
-    if (commands[commandIdx]) {
-      commands[commandIdx].mergeToFile()
-    }
-    console.log('Cannot process video: ' + info.movieFileName + ' | ' + err.message);
-  })
-  .on('end', function(stdout, stderr) {
-    commandIdx++
-    if (commands[commandIdx]) {
-      commands[commandIdx].run()
-    }
-    console.log('Spliting succeeded: ' + info.movieFileName);
-  })
-  .output(outputFile)
+    .on('start', function(commandLine) {
+      // console.log('Spawned Ffmpeg with command: ' + commandLine)
+      console.info('Start Merging: ' + info.movieFileName)
+    })
+    .on('progress', function(progress) {
+      if (progress % 10 === 0)
+        console.log('Processing: ' + progress.percent + '% done')
+    })
+    .on('codecData', function(data) {
+      console.log('Input Codec is ' + data.audio + ' audio ' +
+        'with ' + data.video + ' video');
+    })
+    .on('error', function(err, stdout, stderr) {
+      commandIdx++
+      if (commands[commandIdx]) {
+        commands[commandIdx].mergeToFile()
+      }
+      console.log('Cannot process video: ' + info.movieFileName + ' | ' + err.message);
+    })
+    .on('end', function(stdout, stderr) {
+      commandIdx++
+      if (commands[commandIdx]) {
+        commands[commandIdx].run()
+      }
+      console.log('Spliting succeeded: ' + info.movieFileName);
+    })
+    .output(outputFile)
   commands.push(command)
 }
 
 splitTargets.forEach((splitTarget) => {
   // console.info(`File: ${splitTarget.movieFileName}`)
-  splitVideos2(splitTarget)  
+  splitVideos2(splitTarget)
 })
 
 // splitTargets.forEach(margeTarget=>{
