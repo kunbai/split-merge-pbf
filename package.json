@@ -24,6 +24,7 @@
   "dependencies": {
     "commander": "^2.20.0",
     "fluent-ffmpeg": "^2.1.2",
-    "gearman": "^2.1.0"
+    "gearman": "^2.1.0",
+    "moment": "^2.24.0"
   }
 }
