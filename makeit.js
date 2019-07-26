@@ -184,28 +184,24 @@ async.waterfall([
               return wcallback2()
             })            
             .mergeToFile(outputFile)
+        },
+        (wcallback2) => {
+          async.forEachSeries(info.splitInfo, (spInfo, ecallback2)=>{        
+            fs.unlink(path.join(outputPath, spInfo.fileName), (err)=>{
+              if(err) console.error(err)
+              return ecallback2()
+            })
+          }, (err)=>{
+            return ecallback(err)
+          })
         }
       ], (err) => {
-        return ecallback(err)
+        return wcallback2(err)
       })
     }, (err) => {
       return wcallback(err, splitTargets)
     })
-  },
-  (splitTargets, wcallback) => {    
-    async.forEachSeries(splitTargets, (splitTarget, ecallback)=>{      
-      async.forEachSeries(splitTarget.splitInfo, (spInfo, ecallback2)=>{        
-        fs.unlink(path.join(outputPath, spInfo.fileName), (err)=>{
-          if(err) console.error(err)
-          return ecallback2()
-        })
-      }, (err)=>{
-        return ecallback(err)
-      })
-    }, (err)=>{
-      return wcallback(err)
-    })
-  }
+  }  
 ], (err) => {
   if(err) console.error(err)
   console.log('FIN!!!!!!!')
