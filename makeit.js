@@ -73,7 +73,7 @@ async.waterfall([
     // read pbf
     var splitTargets = []
     targets.forEach((target) => {
-      console.info(`Check PBF of "${target.movieFileName}"`)
+      // console.info(`Check PBF of "${target.movieFileName}"`)
       var pbfBuf = fs.readFileSync(target.pbfFilePath)
       var pbfStr = pbfBuf.toString('UCS-2')
       // console.log(pbfStr)
@@ -109,8 +109,6 @@ async.waterfall([
         target.splitInfo = splitInfo
         // console.log(splitInfo)
         splitTargets.push(target)
-      } else {
-        console.info(`PBF of "${target.movieFileName}" has No Repeat`)
       }
     })
 
