@@ -172,6 +172,8 @@ async.waterfall([
 //			.outputOption('-vaapi_device /dev/dri/renderD128')
 //			.videoCodec("h264_vaapi")
           command
+	  .videoCodec('libx264')
+              .audioCodec('aac')
             .on('start', function(commandLine) {
               // console.log('Spawned Ffmpeg with command: ' + commandLine)
               console.info('Start Merging: ' + info.movieFileName)
