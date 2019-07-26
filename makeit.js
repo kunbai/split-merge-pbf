@@ -123,7 +123,11 @@ async.waterfall([
             var command = new FfmpegCommand(info.movieFileNamePath)
             command.seekInput(spInfo.start)
               .duration(spInfo.end)
-              .videoCodec('libx264')
+			  .inputOption('-hwaccel vaapi')
+			  .inputOption('-hwaccel_output_format vaapi')
+			  .inputOption('-vaapi_device /dev/dri/renderD128')
+			  .videoCodec("h264_vaapi")
+             // .videoCodec('libx264')
               .audioCodec('aac')
               .on('start', function(commandLine) {
                 // console.log('Spawned Ffmpeg with command: ' + commandLine)
@@ -162,7 +166,11 @@ async.waterfall([
               command.input(path.join(outputPath, spInfo.fileName))
             }
           })
-
+		  command
+			.outputOption('-hwaccel vaapi')
+		    .outputOption('-hwaccel_output_format vaapi')
+			.outputOption('-vaapi_device /dev/dri/renderD128')
+			.videoCodec("h264_vaapi")
           command
             .on('start', function(commandLine) {
               // console.log('Spawned Ffmpeg with command: ' + commandLine)
