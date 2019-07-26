@@ -54,7 +54,7 @@ async.waterfall([
         for (let i = 0, max = supportExt.length; i < max; i++) {
           if (fs.existsSync(path.join(inputPath, pureFileName + supportExt[i]))) {
             movieFileName = pureFileName + supportExt[i]
-            console.info(`Found file: ${movieFileName}`)
+            // console.info(`Found file: ${movieFileName}`)
             target = {
               movieFileNamePath: path.join(inputPath, movieFileName),
               movieFileName: movieFileName,
