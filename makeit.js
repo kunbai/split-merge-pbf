@@ -188,7 +188,7 @@ async.waterfall([
           var FfmpegCommand = require('fluent-ffmpeg')
           var outputFile = path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
           var command = new FfmpegCommand()
-          
+          /*
           var names = []
           info.splitInfo.forEach((spInfo) => {
             names.push(path.join(outputPath, spInfo.fileName))
@@ -219,7 +219,7 @@ async.waterfall([
               return wcallback2()
             })
             .run()
-       /*
+       */
 
           info.splitInfo.forEach((spInfo) => {
             for (let i = 0, max = spInfo.repeat; i < max; i++) {              
@@ -263,7 +263,7 @@ async.waterfall([
             })
             .renice(15)
             .mergeToFile(outputFile)
-            */
+            
         },
         (wcallback2) => {
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2)=>{        
