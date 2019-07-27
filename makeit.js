@@ -4,6 +4,7 @@
  * Module dependencies.
  */
 const async = require('async')
+var FfmpegCommand = require('fluent-ffmpeg')
 
 
 const argv = process.argv
@@ -114,28 +115,55 @@ async.waterfall([
 
     return wcallback(null, splitTargets)
   },
-  (splitTargets, wcallback) => {
-    async.forEachSeries(splitTargets, (info, ecallback) => {
-      var FfmpegCommand = require('fluent-ffmpeg')
+  (splitTargets, wcallback) =>{
+    FfmpegCommand.getAvailableEncoders(function(err, encoders) {
+      console.log('Available encoders:')
+      var flagVAAPI = false
+      if(encoders.h264_vaapi){
+        flagVAAPI =  true
+      }
+      return wcallback(null, splitTargets, flagVAAPI)
+    })
+  },
+  (splitTargets, flagVAAPI, wcallback) => {
+    async.forEachSeries(splitTargets, (info, ecallback) => {      
       async.waterfall([
         (wcallback2) => {
+          FfmpegCommand.ffprobe(info.movieFileNamePath, function(err, metadata) {
+            if(err) wcallback2(err)
+            // console.dir(metadata)
+            return wcallback2(null, metadata)
+         })        
+        },
+        (metadata, wcallback2) => {
+          var flagH264 = false
+          metadata.streams.forEach((meta)=>{
+            if(meta.codec_name === 'h264') flagH264 = true
+          })
+          
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2) => {
             var command = new FfmpegCommand(info.movieFileNamePath)
             command.seekInput(spInfo.start)
               .duration(spInfo.end)
-		  //.inputOptions('-hwaccel vaapi')
-		  //.inputOptions('-hwaccel_output_format vaapi')
-		  //.inputOptions('-vaapi_device /dev/dri/renderD128')
-		  //.videoCodec("h264_vaapi")
-             .videoCodec('libx264')
+
+            if(flagH264 && flagVAAPI){
+              command.inputOptions('-hwaccel vaapi')
+		            .inputOptions('-hwaccel_output_format vaapi')
+		            .inputOptions('-vaapi_device /dev/dri/renderD128')
+		            .videoCodec("h264_vaapi")
+            }else{
+              command.videoCodec('libx264')
+            }
+		  
+             command
               .audioCodec('aac')
               .on('start', function(commandLine) {
-                // console.log('Spawned Ffmpeg with command: ' + commandLine)
+                console.log('$ Spawned Ffmpeg with command: ' + commandLine)
                 console.info('Start Spliting: ' + spInfo.fileName)
               })
               .on('progress', function(progress) {
-                // if (progress % 10 === 0)
-                  // console.log('Processing: ' + progress.percent + '% done')
+                if (progress.percent % 10 === 0)
+                  console.log('Processing: ' + progress.percent + '% done')
               })
               .on('codecData', function(data) {
                 console.info('Input Codec is ' + data.audio + ' audio ' +
@@ -166,14 +194,20 @@ async.waterfall([
               command.input(path.join(outputPath, spInfo.fileName))
             }
           })
-		 //  command.outputOption('-c copy')
-//			.outputOption('-hwaccel vaapi')
-//		    .outputOption('-hwaccel_output_format vaapi')
-//			.outputOption('-vaapi_device /dev/dri/renderD128')
-//			.videoCodec("h264_vaapi")
-          command
-	  .videoCodec('libx264')
-              .audioCodec('aac')
+          if(flagVAAPI){
+            command              
+			        // .outputOption('-hwaccel vaapi')
+		          // .outputOption('-hwaccel_output_format vaapi')
+              .outputOption('-vaapi_device /dev/dri/renderD128')
+              // .outputOption('-c copy')
+			        .videoCodec("h264_vaapi")
+          }else{
+            command
+              .videoCodec('libx264')
+          }
+
+          command	          
+            .audioCodec('aac')
             .on('start', function(commandLine) {
               // console.log('Spawned Ffmpeg with command: ' + commandLine)
               console.info('Start Merging: ' + info.movieFileName)

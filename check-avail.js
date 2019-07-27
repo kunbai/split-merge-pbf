@@ -12,7 +12,7 @@ Ffmpeg.getAvailableCodecs(function(err, codecs) {
 
 Ffmpeg.getAvailableEncoders(function(err, encoders) {
   console.log('Available encoders:');
-  console.dir(encoders.h264)
+  console.dir(encoders.libx264)
 })
 
 Ffmpeg.getAvailableFilters(function(err, filters) {
