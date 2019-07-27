@@ -4,6 +4,7 @@
  * Module dependencies.
  */
 const async = require('async')
+const fs = require('fs')
 var FfmpegCommand = require('fluent-ffmpeg')
 
 
@@ -12,7 +13,6 @@ if (argv.length !== 3 && argv.length !== 4)
   console.error('usage: app search-dir [dest-dir]')
 
 // get file list
-const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
 
@@ -188,10 +188,42 @@ async.waterfall([
           var FfmpegCommand = require('fluent-ffmpeg')
           var outputFile = path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
           var command = new FfmpegCommand()
+          
+          var names = []
           info.splitInfo.forEach((spInfo) => {
-            for (let i = 0, max = spInfo.repeat; i < max; i++) {
-              // console.log("hfsdhfkhsdkfiusd" + spInfo.fileName + '  | ' + i)
-              command.input(path.join(outputPath, spInfo.fileName))
+            names.push(path.join(outputPath, spInfo.fileName))
+          })
+          var namesString = names.join('|')
+
+          FfmpegCommand(`concat:${namesString}`)
+            .outputOptions('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
+            .output(outputFile)
+            .on('start', function(commandLine) {
+              // console.log('Spawned Ffmpeg with command: ' + commandLine)
+              console.info('Start Merging: ' + info.movieFileName)
+            })
+            .on('progress', function(progress) {
+              if (progress % 10 === 0)
+                console.log('Processing: ' + progress.percent + '% done')
+            })
+            .on('codecData', function(data) {
+              console.log('Input Codec is ' + data.audio + ' audio ' +
+                'with ' + data.video + ' video');
+            })
+            .on('error', function(err, stdout, stderr) {              
+              console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
+              return wcallback2()
+            })
+            .on('end', function(stdout, stderr) {              
+              console.log('Merging succeeded: ' + info.movieFileName)
+              return wcallback2()
+            })
+            .run()
+       /*
+
+          info.splitInfo.forEach((spInfo) => {
+            for (let i = 0, max = spInfo.repeat; i < max; i++) {              
+              command.input(path.join(outputPath, spInfo.fileName))              
             }
           })
           // if(flagVAAPI){
@@ -231,6 +263,7 @@ async.waterfall([
             })
             .renice(15)
             .mergeToFile(outputFile)
+            */
         },
         (wcallback2) => {
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2)=>{        
@@ -253,3 +286,45 @@ async.waterfall([
   if(err) console.error(err)
   console.log('FIN!!!!!!!')
 })
+
+
+/*
+const unlink = path =>
+  new Promise((resolve, reject) =>
+    fs.unlink(path, err => (err ? reject(err) : resolve()))
+  )
+
+const createIntermediate = file =>
+  new Promise((resolve, reject) => {
+    const out = `${Math.random()
+      .toString(13)
+      .slice(2)}.ts`
+
+    ffmpeg(file)
+      .outputOptions('-c', 'copy', '-bsf:v', 'h264_mp4toannexb', '-f', 'mpegts')
+      .output(out)
+      .on('end', () => resolve(out))
+      .on('error', reject)
+      .run()
+  })
+
+const concat = async (files, output) => {
+  const names = await Promise.all(files.map(createIntermediate))
+  const namesString = names.join('|')
+
+  await new Promise((resolve, reject) =>
+    ffmpeg(`concat:${namesString}`)
+      .outputOptions('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
+      .output(output)
+      .on('end', resolve)
+      .on('error', reject)
+      .run()
+  )
+
+  names.map(unlink)
+}
+
+concat(['file1.mp4', 'file2.mp4', 'file3.mp4'], 'output.mp4').then(() =>
+  console.log('done!')
+)
+*/

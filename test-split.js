@@ -37,3 +37,10 @@ command.seekInput(10)
   .output(path.join(__dirname, '/result', Date.now() + '-' + fileName))
   .renice(15)
   .run()
+
+
+
+const fs = require('fs');
+
+fs.appendFileSync('message.txt', 'data to append');
+fs.appendFileSync('message.txt', 'data to append2');
