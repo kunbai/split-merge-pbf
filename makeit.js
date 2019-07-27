@@ -199,7 +199,7 @@ async.waterfall([
 			        .inputOption('-hwaccel vaapi')
 		          .inputOption('-hwaccel_output_format vaapi')
               .inputOption('-vaapi_device /dev/dri/renderD128')
-              // .outputOption('-c copy')
+              .outputOption('-c copy')
 			        .videoCodec("h264_vaapi")
           }else{
             command
