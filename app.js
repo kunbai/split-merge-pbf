@@ -6,17 +6,6 @@
 const async = require('async')
 
 
-
-async.waterfall([
-  // get argunemts
-  (wcallback) => {
-
-  }
-], (err) => {
-
-})
-
-
 // console.log(process.argv)
 const argv = process.argv
 if (argv.length !== 3 && argv.length !== 4)
