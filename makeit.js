@@ -194,19 +194,19 @@ async.waterfall([
               command.input(path.join(outputPath, spInfo.fileName))
             }
           })
-          if(flagVAAPI){
-            command              
-			        .inputOption('-hwaccel vaapi')
-		          .inputOption('-hwaccel_output_format vaapi')
-              .inputOption('-vaapi_device /dev/dri/renderD128')
-              .outputOption('-c copy')
-			        .videoCodec("h264_vaapi")
-          }else{
-            command
-              .videoCodec('libx264')
-          }
-          // command
-          //   .videoCodec('libx264')
+          // if(flagVAAPI){
+          //   command              
+			    //     .inputOption('-hwaccel vaapi')
+		      //     .inputOption('-hwaccel_output_format vaapi')
+          //     .inputOption('-vaapi_device /dev/dri/renderD128')
+          //     .outputOption('-c copy')
+			    //     .videoCodec("h264_vaapi")
+          // }else{
+          //   command
+          //     .videoCodec('libx264')
+          // }
+          command
+            .videoCodec('libx264')
           command	          
             .audioCodec('aac')
             .on('start', function(commandLine) {
