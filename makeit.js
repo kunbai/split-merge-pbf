@@ -187,17 +187,31 @@ async.waterfall([
         (wcallback2) => {
           var FfmpegCommand = require('fluent-ffmpeg')
           var outputFile = path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
-          var command = new FfmpegCommand()
-          /*
-          var names = []
-          info.splitInfo.forEach((spInfo) => {
-            names.push(path.join(outputPath, spInfo.fileName))
-          })
-          var namesString = names.join('|')
+          // console.log('!!!!!!' + outputFile)
+          
 
-          FfmpegCommand(`concat:${namesString}`)
-            .outputOptions('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
-            .output(outputFile)
+          var listFileName = 'list' - info.pureFileName + '.txt'
+          var listFilePath = path.join(outputPath, listFileName)
+                              
+          info.splitInfo.forEach((spInfo) => {
+            for (let i = 0, max = spInfo.repeat; i < max; i++) {
+              var listItemStr = "file '" 
+              + path.join(outputPath, spInfo.fileName)
+              + "'\r\n"            
+              // console.log('#####' + listItemStr)
+              fs.appendFileSync(listFilePath, listItemStr)              
+            }            
+          })
+          //ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
+          //ffmpeg('C:/path/to/list.txt').inputFormat('concat').mergeToFile('C:/path/to/out.mp4', 'C:/path/to/temp');
+          var command = new FfmpegCommand(listFilePath)
+          
+          command
+            .inputFormat('concat')
+            .inputOptions(        
+              '-safe', '0'
+            )                        
+            // .output(outputFile)
             .on('start', function(commandLine) {
               // console.log('Spawned Ffmpeg with command: ' + commandLine)
               console.info('Start Merging: ' + info.movieFileName)
@@ -212,31 +226,27 @@ async.waterfall([
             })
             .on('error', function(err, stdout, stderr) {              
               console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
+              fs.unlink(listFilePath, (err)=>{
+                return wcallback2()
+              })              
               return wcallback2()
             })
             .on('end', function(stdout, stderr) {              
               console.log('Merging succeeded: ' + info.movieFileName)
-              return wcallback2()
+              fs.unlink(listFilePath, (err)=>{
+                return wcallback2()
+              })              
             })
-            .run()
-       */
-
+            .mergeToFile(outputFile)      
+        /*
           info.splitInfo.forEach((spInfo) => {
             for (let i = 0, max = spInfo.repeat; i < max; i++) {              
               command.input(path.join(outputPath, spInfo.fileName))              
             }
           })
-          // if(flagVAAPI){
-          //   command              
-			    //     .inputOption('-hwaccel vaapi')
-		      //     .inputOption('-hwaccel_output_format vaapi')
-          //     .inputOption('-vaapi_device /dev/dri/renderD128')
-          //     .outputOption('-c copy')
-			    //     .videoCodec("h264_vaapi")
-          // }else{
-          //   command
-          //     .videoCodec('libx264')
-          // }
+          
+
+          
           command
             .videoCodec('libx264')
           command	          
@@ -263,7 +273,7 @@ async.waterfall([
             })
             .renice(15)
             .mergeToFile(outputFile)
-            
+            */
         },
         (wcallback2) => {
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2)=>{        
@@ -328,3 +338,8 @@ concat(['file1.mp4', 'file2.mp4', 'file3.mp4'], 'output.mp4').then(() =>
   console.log('done!')
 )
 */
+
+
+
+
+//ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
