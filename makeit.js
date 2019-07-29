@@ -195,7 +195,7 @@ async.waterfall([
           // console.log('!!!!!!' + outputFile)
 
 
-          var listFileName = 'list' - info.movieFileName + '.txt'
+          var listFileName = 'list' + info.pureFileName + '.txt'
           var listFilePath = path.join(outputPath, listFileName)
 
           info.splitInfo.forEach((spInfo) => {
