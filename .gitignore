@@ -58,4 +58,7 @@ typings/
 .env
 
 # next.js build output
-.next
+
+#mp4
+.mp4
+.pbf

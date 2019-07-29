@@ -114,18 +114,8 @@ async.waterfall([
     })
 
     return wcallback(null, splitTargets)
-  },
+  },  
   (splitTargets, wcallback) => {
-    FfmpegCommand.getAvailableEncoders(function(err, encoders) {
-      console.log('Available encoders:')
-      var flagVAAPI = false
-      if (encoders.h264_vaapi) {
-        flagVAAPI = true
-      }
-      return wcallback(null, splitTargets, flagVAAPI)
-    })
-  },
-  (splitTargets, flagVAAPI, wcallback) => {
     async.forEachSeries(splitTargets, (info, ecallback) => {
       async.waterfall([
         (wcallback2) => {
@@ -149,17 +139,9 @@ async.waterfall([
 
             var command = new FfmpegCommand(info.movieFileNamePath)
             command.seekInput(spInfo.start)
-              .duration(spInfo.end)
-
-            if (flagH264 && flagVAAPI) {
-              command.inputOptions('-hwaccel vaapi')
-                .inputOptions('-hwaccel_output_format vaapi')
-                .inputOptions('-vaapi_device /dev/dri/renderD128')
-                .videoCodec("h264_vaapi")
-            } else {
-              command.videoCodec('libx264')
-            }
-
+              .duration(spInfo.end)           
+            command.videoCodec('libx264')
+            
             command
               .audioCodec('aac')
               .on('start', function(commandLine) {
