@@ -60,7 +60,7 @@ async.waterfall([
               movieFileName: movieFileName,
               pureFileName: pureFileName,
               pbfFilePath: path.join(inputPath, fileName),
-              outputFile: path.join(outputPath, 'clip-' + pureFileName + '.mp4')
+              outputFile: path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
             }
             targets.push(target)
             break;
@@ -114,8 +114,18 @@ async.waterfall([
     })
 
     return wcallback(null, splitTargets)
-  },  
+  },
   (splitTargets, wcallback) => {
+    FfmpegCommand.getAvailableEncoders(function(err, encoders) {
+      console.log('Available encoders:')
+      var flagVAAPI = false
+      if (encoders.h264_vaapi) {
+        flagVAAPI = true
+      }
+      return wcallback(null, splitTargets, flagVAAPI)
+    })
+  },
+  (splitTargets, flagVAAPI, wcallback) => {
     async.forEachSeries(splitTargets, (info, ecallback) => {
       async.waterfall([
         (wcallback2) => {
@@ -139,9 +149,17 @@ async.waterfall([
 
             var command = new FfmpegCommand(info.movieFileNamePath)
             command.seekInput(spInfo.start)
-              .duration(spInfo.end)           
-            command.videoCodec('libx264')
-            
+              .duration(spInfo.end)
+
+            if (flagH264 && flagVAAPI) {
+              command.inputOptions('-hwaccel vaapi')
+                .inputOptions('-hwaccel_output_format vaapi')
+                .inputOptions('-vaapi_device /dev/dri/renderD128')
+                .videoCodec("h264_vaapi")
+            } else {
+              command.videoCodec('libx264')
+            }
+
             command
               .audioCodec('aac')
               .on('start', function(commandLine) {

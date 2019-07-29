@@ -60,7 +60,7 @@ async.waterfall([
               movieFileName: movieFileName,
               pureFileName: pureFileName,
               pbfFilePath: path.join(inputPath, fileName),
-              outputFile: path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
+              outputFile: path.join(outputPath, 'clip-' + pureFileName + '.mp4')
             }
             targets.push(target)
             break;
