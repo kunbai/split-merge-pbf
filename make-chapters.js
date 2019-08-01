@@ -45,7 +45,7 @@ async.waterfall([
   },
   (fileNames, wcallback) => {
     var targets = []
-    const supportExt = ['.mp4', '.avi', '.mkv', '.flv', '.mpg', '.mpeg', 'mov', 'wmv']
+    const supportExt = ['.mp4', '.mkv', '.mpg', '.mpeg', 'mov', 'wmv']
     fileNames.forEach((fileName) => {
       var target = null
       if (path.extname(fileName) === '.pbf') {
@@ -59,8 +59,7 @@ async.waterfall([
               movieFileNamePath: path.join(inputPath, movieFileName),
               movieFileName: movieFileName,
               pureFileName: pureFileName,
-              pbfFilePath: path.join(inputPath, fileName),
-              outputFile: path.join(outputPath, 'clip-' + info.pureFileName + '.mp4')
+              pbfFilePath: path.join(inputPath, fileName)
             }
             targets.push(target)
             break;
@@ -72,229 +71,101 @@ async.waterfall([
   },
   (targets, wcallback) => {
     // read pbf
-    var splitTargets = []
-    targets.forEach((target) => {
-      // console.info(`Check PBF of "${target.movieFileName}"`)
-      var pbfBuf = fs.readFileSync(target.pbfFilePath)
-      var pbfStr = pbfBuf.toString('UCS-2')
-      // console.log(pbfStr)
-      // var pbfStream = fs.createReadStream(target.pbfFilePath, { encoding:'UCS-2' })
-
-      var idxStart = pbfStr.search(/\[PlayRepeat\]/)
-      if (idxStart === -1) return
-
-      var repeatStr = pbfStr.substr(idxStart + "[PlayRepeat]".length)
-      // var lines = repeatStr.split('/r/n')
-      var lines = repeatStr.match(/[^\r\n]+/g)
-      if (lines.length === 0) return
-
-      var splitInfo = []
-
-      lines.forEach((line, idx) => {
-        // console.log(line)
-        let tmInfo = line.split("=")[1]
-        let tm = tmInfo.split('*')
-        if (tm.length < 4) return
-        let start = (tm[0] / 1000).toFixed(1)
-        let end = ((tm[1] % 60000) / 1000).toFixed(1)
-        splitInfo.push({
-          fileName: target.pureFileName + '-clip-' + idx + '.mp4',
-          start: start,
-          end: end,
-          repeat: parseInt(tm[2])
+    var chapterTargets = []
+    async.forEachSeries(targets, (target, ecallback) => {
+      FfmpegCommand.ffprobe(target.movieFileNamePath, function(err, metadata) {
+        if (err) ecallback(err)
+        // console.dir(metadata)
+        var flagH264 = false
+        metadata.streams.forEach((meta) => {
+          if (meta.codec_name === 'h264') flagH264 = true
         })
-      })
+        if(!flagH264) return ecallback()
 
-      if (splitInfo.length > 0) {
-        console.info(`PBF of "${target.movieFileName}" has ${splitInfo.length} Repeat infomation.`)
-        target.splitInfo = splitInfo
-        // console.log(splitInfo)
-        splitTargets.push(target)
-      }
-    })
+          // console.info(`Check PBF of "${target.movieFileName}"`)
+        var pbfBuf = fs.readFileSync(target.pbfFilePath)
+        var pbfStr = pbfBuf.toString('UCS-2')
+        // console.log(pbfStr)
+        // var pbfStream = fs.createReadStream(target.pbfFilePath, { encoding:'UCS-2' })
 
-    return wcallback(null, splitTargets)
-  },
-  (splitTargets, wcallback) => {
-    FfmpegCommand.getAvailableEncoders(function(err, encoders) {
-      console.log('Available encoders:')
-      var flagVAAPI = false
-      if (encoders.h264_vaapi) {
-        flagVAAPI = true
-      }
-      return wcallback(null, splitTargets, flagVAAPI)
-    })
-  },
-  (splitTargets, flagVAAPI, wcallback) => {
-    async.forEachSeries(splitTargets, (info, ecallback) => {
-      async.waterfall([
-        (wcallback2) => {
-          FfmpegCommand.ffprobe(info.movieFileNamePath, function(err, metadata) {
-            if (err) wcallback2(err)
-            // console.dir(metadata)
-            return wcallback2(null, metadata)
-          })
-        },
-        (metadata, wcallback2) => {
-          var flagH264 = false
-          metadata.streams.forEach((meta) => {
-            if (meta.codec_name === 'h264') flagH264 = true
-          })
+        var idxStart = pbfStr.search(/\[Bookmark\]/)
+        var idxEnd = pbfStr.search(/\[PlayRepeat\]/)
+        if (idxStart === -1) return
+        if (idxEnd > -1) pbfStr = pbfStr.substr(0, idxEnd)      
 
-          async.forEachSeries(info.splitInfo, (spInfo, ecallback2) => {
-            if(fs.existsSync(info.outputFile)){
-              console.info('There is file already: ' + info.outputFile)
-              return ecallback2()
-            } 
+        var repeatStr = pbfStr.substr(idxStart + "[Bookmark]".length)
+        // var lines = repeatStr.split('/r/n')
+        var lines = repeatStr.match(/[^\r\n]+/g)
+        if (lines.length === 0) return
 
-            var command = new FfmpegCommand(info.movieFileNamePath)
-            command.seekInput(spInfo.start)
-              .duration(spInfo.end)
+        var chapterInfo = []
 
-            if (flagH264 && flagVAAPI) {
-              command.inputOptions('-hwaccel vaapi')
-                .inputOptions('-hwaccel_output_format vaapi')
-                .inputOptions('-vaapi_device /dev/dri/renderD128')
-                .videoCodec("h264_vaapi")
-            } else {
-              command.videoCodec('libx264')
-            }
+        lines.forEach((line, idx) => {
+          if(line.search(/^[0-9]*=[0-9]*\*/) > -1){
+            chapterInfo.push(parseInt(line.split('=')[1].split('*')[0]))
+          }
+        })      
+        if(chapterInfo.length > 0){
+          let chapterFileName = 'chapter-' + Date.now()
+          let chapterFilePath = path.join(outputPath, chapterFileName)
+          fs.appendFileSync(chapterFilePath, ";FFMETADATA1\r\n\r\n")
 
-            command
-              .audioCodec('aac')
-              .on('start', function(commandLine) {
-                console.log('$ Spawned Ffmpeg with command: ' + commandLine)
-                console.info('Start Spliting: ' + spInfo.fileName)
-              })
-              .on('progress', function(progress) {
-                if (progress.percent % 10 === 0)
-                  console.log('Processing: ' + progress.percent + '% done')
-              })
-              .on('codecData', function(data) {
-                console.info('Input Codec is ' + data.audio + ' audio ' +
-                  'with ' + data.video + ' video');
-              })
-              .on('error', function(err, stdout, stderr) {
-                console.error('Cannot process video: ' + spInfo.fileName + ' | ' + err.message)
-                return ecallback2()
-              })
-              .on('end', function(stdout, stderr) {
-                console.info('Spliting succeeded: ' + spInfo.fileName)
-                return ecallback2()
-              })
-              .output(path.join(outputPath, spInfo.fileName))
-              .renice(15)
-              .run()
-          }, (err) => {
-            return wcallback2(err)
-          })
-        },
-        (wcallback2) => {
-          var FfmpegCommand = require('fluent-ffmpeg')
-          var outputFile = info.outputFile
-          // console.log('!!!!!!' + outputFile)
+          for(let i=0, max=chapterInfo.length; i < max; i++){
+            fs.appendFileSync(chapterFilePath, "[CHAPTER]\r\nTIMEBASE=1/1000\r\n")            
+            fs.appendFileSync(chapterFilePath, "START=" + chapterInfo[i] + "\r\n")
+            if(i !== chapterInfo.length -1)
+              fs.appendFileSync(chapterFilePath, "END=" + chapterInfo[i+1] + "\r\n")            
+          }                    
+          target.chapterFilePath = chapterFilePath
+          chapterTargets.push(target)
 
-
-          var listFileName = 'list' + info.pureFileName + '.txt'
-          var listFilePath = path.join(outputPath, listFileName)
-
-          info.splitInfo.forEach((spInfo) => {
-            for (let i = 0, max = spInfo.repeat; i < max; i++) {
-              var listItemStr = "file '" +
-                path.join(outputPath, spInfo.fileName) +
-                "'\r\n"
-              // console.log('#####' + listItemStr)
-              fs.appendFileSync(listFilePath, listItemStr)
-            }
-          })
-          //ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
-          //ffmpeg('C:/path/to/list.txt').inputFormat('concat').mergeToFile('C:/path/to/out.mp4', 'C:/path/to/temp');
-          var command = new FfmpegCommand(listFilePath)
-
+          //ffmpeg -i [input] -i [chapter]] -map_metadata 1 -codec copy output2.mp4
+          var command = new FfmpegCommand(target.movieFileNamePath)
           command
-            .inputFormat('concat')
-            .inputOptions(
-              '-safe', '0'
-            )
-            // .output(outputFile)
+            .inputOptions('-i', chapterFilePath)
+            .outputOptions('-map_metadata', '1')
+            .outputOptions('-codec', 'copy')
+          command.output(path.join(inputPath, 'chapter-' + target.movieFileName))            
+          command
             .on('start', function(commandLine) {
-              // console.log('Spawned Ffmpeg with command: ' + commandLine)
-              console.info('Start Merging: ' + info.movieFileName)
+              console.log('$ Spawned Ffmpeg with command: ' + commandLine)
+              console.info('Start Chapter: ' + target.movieFileName)
             })
             .on('progress', function(progress) {
-              if (progress % 10 === 0)
+              if (progress.percent % 10 === 0)
                 console.log('Processing: ' + progress.percent + '% done')
             })
             .on('codecData', function(data) {
-              console.log('Input Codec is ' + data.audio + ' audio ' +
+              console.info('Input Codec is ' + data.audio + ' audio ' +
                 'with ' + data.video + ' video');
             })
             .on('error', function(err, stdout, stderr) {
-              console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
-              fs.unlink(listFilePath, (err) => {
-                return wcallback2()
+              console.error('Cannot process video: ' + target.movieFileName + ' | ' + err.message)
+              fs.unlink(chapterFilePath, (err)=>{
+                if(err) console.error(err)
+                return ecallback()
               })              
             })
             .on('end', function(stdout, stderr) {
-              console.log('Merging succeeded: ' + info.movieFileName)
-              fs.unlink(listFilePath, (err) => {
-                return wcallback2()
-              })
+              console.info('Chapter succeeded: ' + target.movieFileName)
+              fs.unlink(chapterFilePath, (err)=>{
+                if(err) console.error(err)
+                return ecallback()
+              })              
             })
-            .mergeToFile(outputFile)
-          /*
-            info.splitInfo.forEach((spInfo) => {
-              for (let i = 0, max = spInfo.repeat; i < max; i++) {              
-                command.input(path.join(outputPath, spInfo.fileName))              
-              }
-            })
-            
-
-            
-            command
-              .videoCodec('libx264')
-            command	          
-              .audioCodec('aac')
-              .on('start', function(commandLine) {
-                // console.log('Spawned Ffmpeg with command: ' + commandLine)
-                console.info('Start Merging: ' + info.movieFileName)
-              })
-              .on('progress', function(progress) {
-                if (progress % 10 === 0)
-                  console.log('Processing: ' + progress.percent + '% done')
-              })
-              .on('codecData', function(data) {
-                console.log('Input Codec is ' + data.audio + ' audio ' +
-                  'with ' + data.video + ' video');
-              })
-              .on('error', function(err, stdout, stderr) {              
-                console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
-                return wcallback2()
-              })
-              .on('end', function(stdout, stderr) {              
-                console.log('Spliting succeeded: ' + info.movieFileName)
-                return wcallback2()
-              })
-              .renice(15)
-              .mergeToFile(outputFile)
-              */
-        },
-        (wcallback2) => {
-          async.forEachSeries(info.splitInfo, (spInfo, ecallback2) => {
-            fs.unlink(path.join(outputPath, spInfo.fileName), (err) => {
-              if (err) console.error(err)
-              return ecallback2()
-            })
-          }, (err) => {
-            return ecallback(err)
-          })
-        }
-      ], (err) => {
-        return wcallback2(err)
+            .run()          
+        }else{
+          return ecallback()
+        }        
       })
-    }, (err) => {
-      return wcallback(err, splitTargets)
+    }    
+    ,(err)=>{
+      if(err) console.error(err)
+      return wcallback(null, chapterTargets)
     })
+  },
+  (chapterTargets, wcallback) => {
+    console.dir(chapterTargets)    
   }
 ], (err) => {
   if (err) console.error(err)

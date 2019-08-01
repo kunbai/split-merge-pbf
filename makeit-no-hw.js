@@ -177,7 +177,7 @@ async.waterfall([
           // console.log('!!!!!!' + outputFile)
 
 
-          var listFileName = 'list' - info.movieFileName + '.txt'
+          var listFileName = 'list-' + Date.now() + '.txt'
           var listFilePath = path.join(outputPath, listFileName)
 
           info.splitInfo.forEach((spInfo) => {
@@ -329,3 +329,6 @@ concat(['file1.mp4', 'file2.mp4', 'file3.mp4'], 'output.mp4').then(() =>
 
 
 //ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
+
+//node ./makeit-no-hw.js /Volumes/personal/videos/GEast /Volumes/personal/downloads
+// node ~/Documents/Projects/split-merge-pbf/makeit-no-hw.js ./ /Volumes/personal/downloads 
