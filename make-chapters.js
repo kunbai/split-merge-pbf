@@ -125,7 +125,7 @@ async.waterfall([
             .inputOptions('-i', chapterFilePath)
             .outputOptions('-map_metadata', '1')
             .outputOptions('-codec', 'copy')
-          command.output(path.join(inputPath, target.movieFileName))            
+          command.output(path.join('./result', target.movieFileName))            
           command
             .on('start', function(commandLine) {
               console.log('$ Spawned Ffmpeg with command: ' + commandLine)
