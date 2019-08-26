@@ -88,7 +88,12 @@ async.waterfall([
     var splitTargets = []
     targets.forEach((target) => {
       // console.info(`Check PBF of "${target.movieFileName}"`)
-      var pbfBuf = fs.readFileSync(target.pbfFilePath)
+      try{
+        var pbfBuf = fs.readFileSync(target.pbfFilePath)
+      } catch (e){
+        console.error(e)
+        return
+      }
       var pbfStr = pbfBuf.toString('UCS-2')
       // console.log(pbfStr)
       // var pbfStream = fs.createReadStream(target.pbfFilePath, { encoding:'UCS-2' })
