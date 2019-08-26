@@ -39,9 +39,21 @@ async.waterfall([
   // get argunemts
   (wcallback) => {
     console.info(`Start searching dir: ${inputPath}`)
-    fs.readdir(inputPath, (err, fileNames) => {
-      return wcallback(err, fileNames)
+    var inputFiles = []
+    var fileNames = fs.readdirSync(inputPath)    
+    fileNames.forEach(fileName=>{      
+      const fstat = fs.lstatSync(path.join(inputPath, fileName))
+      if (fstat.isDirectory()) {
+        var subPath = path.join(inputPath, fileName)
+        var fileNames2 = fs.readdirSync(subPath)        
+        fileNames2.forEach(fileName2=>{
+          inputFiles.push(path.join(subPath, fileName2))
+        })
+      }else {
+        inputFiles.push(path.join(inputPath, fileName))
+      }
     })
+    return wcallback(null, inputFiles)
   },
   (fileNames, wcallback) => {
     var targets = []
@@ -52,14 +64,14 @@ async.waterfall([
         const pureFileName = path.basename(fileName, '.pbf')
         var movieFileName = null
         for (let i = 0, max = supportExt.length; i < max; i++) {
-          if (fs.existsSync(path.join(inputPath, pureFileName + supportExt[i]))) {
+          if (fs.existsSync(path.join(path.dirname(fileName), pureFileName + supportExt[i]))) {
             movieFileName = pureFileName + supportExt[i]
             // console.info(`Found file: ${movieFileName}`)
             target = {
-              movieFileNamePath: path.join(inputPath, movieFileName),
+              movieFileNamePath: path.join(path.dirname(fileName), movieFileName),
               movieFileName: movieFileName,
               pureFileName: pureFileName,
-              pbfFilePath: path.join(inputPath, fileName),
+              pbfFilePath: fileName,
               outputFile: path.join(outputPath, 'clip-' + pureFileName + '.mp4')
             }
             targets.push(target)
@@ -68,6 +80,7 @@ async.waterfall([
         }
       }
     })
+    
     return wcallback(null, targets)
   },
   (targets, wcallback) => {
@@ -96,13 +109,14 @@ async.waterfall([
         let tm = tmInfo.split('*')
         if (tm.length < 4) return
         let start = (tm[0] / 1000).toFixed(1)
-        let end = ((tm[1] % 60000) / 1000).toFixed(1)
+        let end = ((tm[1] % 60000) / 1000).toFixed(1)        
         splitInfo.push({
           fileName: target.pureFileName + '-clip-' + idx + '.mp4',
           start: start,
           end: end,
           repeat: parseInt(tm[2])
         })
+      
       })
 
       if (splitInfo.length > 0) {
@@ -114,9 +128,15 @@ async.waterfall([
     })
 
     return wcallback(null, splitTargets)
-  },  
+  },
   (splitTargets, wcallback) => {
     async.forEachSeries(splitTargets, (info, ecallback) => {
+      if (fs.existsSync(info.outputFile)) {
+        info.skip = true
+        console.info('SKIP! There is file already: ' + info.outputFile)
+        return ecallback()
+      }
+
       async.waterfall([
         (wcallback2) => {
           FfmpegCommand.ffprobe(info.movieFileNamePath, function(err, metadata) {
@@ -132,16 +152,12 @@ async.waterfall([
           })
 
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2) => {
-            if(fs.existsSync(info.outputFile)){
-              console.info('There is file already: ' + info.outputFile)
-              return ecallback2()
-            } 
 
             var command = new FfmpegCommand(info.movieFileNamePath)
             command.seekInput(spInfo.start)
-              .duration(spInfo.end)           
+              .duration(spInfo.end)
             command.videoCodec('libx264')
-            
+
             command
               .audioCodec('aac')
               .on('start', function(commandLine) {
@@ -174,7 +190,7 @@ async.waterfall([
         (wcallback2) => {
           var FfmpegCommand = require('fluent-ffmpeg')
           var outputFile = info.outputFile
-          // console.log('!!!!!!' + outputFile)
+          // console.log('!!!!!!' + outputFile)          
 
 
           var listFileName = 'list-' + Date.now() + '.txt'
@@ -215,7 +231,7 @@ async.waterfall([
               console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
               fs.unlink(listFilePath, (err) => {
                 return wcallback2()
-              })              
+              })
             })
             .on('end', function(stdout, stderr) {
               console.log('Merging succeeded: ' + info.movieFileName)
@@ -224,44 +240,11 @@ async.waterfall([
               })
             })
             .mergeToFile(outputFile)
-          /*
-            info.splitInfo.forEach((spInfo) => {
-              for (let i = 0, max = spInfo.repeat; i < max; i++) {              
-                command.input(path.join(outputPath, spInfo.fileName))              
-              }
-            })
-            
-
-            
-            command
-              .videoCodec('libx264')
-            command	          
-              .audioCodec('aac')
-              .on('start', function(commandLine) {
-                // console.log('Spawned Ffmpeg with command: ' + commandLine)
-                console.info('Start Merging: ' + info.movieFileName)
-              })
-              .on('progress', function(progress) {
-                if (progress % 10 === 0)
-                  console.log('Processing: ' + progress.percent + '% done')
-              })
-              .on('codecData', function(data) {
-                console.log('Input Codec is ' + data.audio + ' audio ' +
-                  'with ' + data.video + ' video');
-              })
-              .on('error', function(err, stdout, stderr) {              
-                console.error('Cannot process video: ' + info.movieFileName + ' | ' + err.message)
-                return wcallback2()
-              })
-              .on('end', function(stdout, stderr) {              
-                console.log('Spliting succeeded: ' + info.movieFileName)
-                return wcallback2()
-              })
-              .renice(15)
-              .mergeToFile(outputFile)
-              */
         },
         (wcallback2) => {
+          if (info.skip === true) {
+            return wcallback2()
+          }
           async.forEachSeries(info.splitInfo, (spInfo, ecallback2) => {
             fs.unlink(path.join(outputPath, spInfo.fileName), (err) => {
               if (err) console.error(err)
@@ -282,53 +265,3 @@ async.waterfall([
   if (err) console.error(err)
   console.log('FIN!!!!!!!')
 })
-
-
-/*
-const unlink = path =>
-  new Promise((resolve, reject) =>
-    fs.unlink(path, err => (err ? reject(err) : resolve()))
-  )
-
-const createIntermediate = file =>
-  new Promise((resolve, reject) => {
-    const out = `${Math.random()
-      .toString(13)
-      .slice(2)}.ts`
-
-    ffmpeg(file)
-      .outputOptions('-c', 'copy', '-bsf:v', 'h264_mp4toannexb', '-f', 'mpegts')
-      .output(out)
-      .on('end', () => resolve(out))
-      .on('error', reject)
-      .run()
-  })
-
-const concat = async (files, output) => {
-  const names = await Promise.all(files.map(createIntermediate))
-  const namesString = names.join('|')
-
-  await new Promise((resolve, reject) =>
-    ffmpeg(`concat:${namesString}`)
-      .outputOptions('-c', 'copy', '-bsf:a', 'aac_adtstoasc')
-      .output(output)
-      .on('end', resolve)
-      .on('error', reject)
-      .run()
-  )
-
-  names.map(unlink)
-}
-
-concat(['file1.mp4', 'file2.mp4', 'file3.mp4'], 'output.mp4').then(() =>
-  console.log('done!')
-)
-*/
-
-
-
-
-//ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
-
-//node ./makeit-no-hw.js /Volumes/personal/videos/GEast /Volumes/personal/downloads
-// node ~/Documents/Projects/split-merge-pbf/makeit-no-hw.js ./ /Volumes/personal/downloads 
