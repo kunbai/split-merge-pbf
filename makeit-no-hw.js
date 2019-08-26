@@ -57,7 +57,7 @@ async.waterfall([
   },
   (fileNames, wcallback) => {
     var targets = []
-    const supportExt = ['.mp4', '.avi', '.mkv', '.flv', '.mpg', '.mpeg', 'mov', 'wmv']
+    const supportExt = ['.mp4', '.avi', '.mkv', '.flv', '.mpg', '.mpeg', 'mov', 'wmv', 'AVI', 'MP4', 'asf', 'WMV', 'MPG', 'skm', 'k3g']
     fileNames.forEach((fileName) => {
       var target = null
       if (path.extname(fileName) === '.pbf') {
