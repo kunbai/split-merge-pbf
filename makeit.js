@@ -107,6 +107,8 @@ async.waterfall([
       if (lines.length === 0) return
 
       var splitInfo = []
+      
+      var totalLen = 0
 
       lines.forEach((line, idx) => {
         // console.log(line)
@@ -114,28 +116,32 @@ async.waterfall([
         let tm = tmInfo.split('*')
         if (tm.length < 4) return
         let start = (tm[0] / 1000).toFixed(1)
-        let end = ((tm[1] % 60000) / 1000).toFixed(1)
+        let end = ((tm[1] % 60000) / 1000).toFixed(1)        
+
         splitInfo.push({
           fileName: target.pureFileName + '-clip-' + idx + '.mp4',
           start: start,
           end: end,
           repeat: parseInt(tm[2])
         })
+
+        totalLen += end * parseInt(tm[2])
       })
 
-      if (splitInfo.length > 0) {
-        console.info(`PBF of "${target.movieFileName}" has ${splitInfo.length} Repeat infomation.`)
-        target.splitInfo = splitInfo
-        // console.log(splitInfo)
-        splitTargets.push(target)
+      if (splitInfo.length > 0) {        
+        if(totalLen >= 10){
+          console.info(`PBF of "${target.movieFileName}" has ${splitInfo.length} Repeat information. Length is ${totalLen} sec`)
+          target.splitInfo = splitInfo
+          // console.log(splitInfo)
+          splitTargets.push(target)
+        }        
       }
     })
 
     return wcallback(null, splitTargets)
   },
   (splitTargets, wcallback) => {
-    FfmpegCommand.getAvailableEncoders(function(err, encoders) {
-      console.log('Available encoders:')
+    FfmpegCommand.getAvailableEncoders(function(err, encoders) {      
       var flagVAAPI = false
       if (encoders.h264_vaapi) {
         flagVAAPI = true

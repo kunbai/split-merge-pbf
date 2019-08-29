@@ -109,6 +109,8 @@ async.waterfall([
 
       var splitInfo = []
 
+      var totalLen = 0
+
       lines.forEach((line, idx) => {
         // console.log(line)
         let tmInfo = line.split("=")[1]
@@ -122,14 +124,16 @@ async.waterfall([
           end: end,
           repeat: parseInt(tm[2])
         })
-      
+        totalLen += end * parseInt(tm[2])
       })
 
-      if (splitInfo.length > 0) {
-        console.info(`PBF of "${target.movieFileName}" has ${splitInfo.length} Repeat infomation.`)
-        target.splitInfo = splitInfo
-        // console.log(splitInfo)
-        splitTargets.push(target)
+      if (splitInfo.length > 0) {        
+        if(totalLen >= 10){
+          console.info(`PBF of "${target.movieFileName}" has ${splitInfo.length} Repeat information. Length is ${totalLen} sec`)
+          target.splitInfo = splitInfo
+          // console.log(splitInfo)
+          splitTargets.push(target)
+        }        
       }
     })
 
