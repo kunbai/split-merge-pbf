@@ -41,17 +41,22 @@ async.waterfall([
     console.info(`Start searching dir: ${inputPath}`)
     var inputFiles = []
     var fileNames = fs.readdirSync(inputPath)    
-    fileNames.forEach(fileName=>{      
-      const fstat = fs.lstatSync(path.join(inputPath, fileName))
-      if (fstat.isDirectory()) {
-        var subPath = path.join(inputPath, fileName)
-        var fileNames2 = fs.readdirSync(subPath)        
-        fileNames2.forEach(fileName2=>{
-          inputFiles.push(path.join(subPath, fileName2))
-        })
-      }else {
-        inputFiles.push(path.join(inputPath, fileName))
-      }
+    fileNames.forEach(fileName=>{
+      try{
+        const fstat = fs.lstatSync(path.join(inputPath, fileName))
+        if (fstat.isDirectory()) {
+          var subPath = path.join(inputPath, fileName)
+          var fileNames2 = fs.readdirSync(subPath)        
+          fileNames2.forEach(fileName2=>{
+            inputFiles.push(path.join(subPath, fileName2))
+          })
+        }else {
+          inputFiles.push(path.join(inputPath, fileName))
+        }
+      } catch (err){
+        console.log(err.message)
+        return
+      }          
     })
     return wcallback(null, inputFiles)
   },
