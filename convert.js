@@ -3,7 +3,6 @@
 /**
  * Module dependencies.
  */
-const async = require('async')
 const fs = require('fs')
 const path = require('path')
 const fsPromise = require('fs/promises')
@@ -157,7 +156,8 @@ const splitFile = function (movieFileNamePath, spInfo, flagH264, flagVAAPI) {
     var command = new FfmpegCommand(movieFileNamePath)
     command.seekInput(spInfo.start).duration(spInfo.end)
 
-    if (flagH264 && flagVAAPI) {
+    // if (flagH264 && flagVAAPI) {
+    if (false) {
       command
         .inputOptions('-hwaccel vaapi')
         .inputOptions('-hwaccel_output_format vaapi')
