@@ -40,7 +40,7 @@ const searchPBF = async function (dirPath, outputPath) {
   let fileNames = fs.readdirSync(dirPath)
 
   for (let fileName of fileNames) {
-    const fstat = fs.lstatSync(path.resolve(dirPath, fileName))
+    const fstat = await fsPromise.lstat(path.resolve(dirPath, fileName))
     if (fstat.isDirectory()) {
       let subPath = path.resolve(dirPath, fileName)
       let fileNames2 = fs.readdirSync(subPath)
