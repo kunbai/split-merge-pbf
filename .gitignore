@@ -63,3 +63,7 @@ typings/
 #mp4
 .mp4
 .pbf
+
+
+#DATA
+PROCESSED.json
