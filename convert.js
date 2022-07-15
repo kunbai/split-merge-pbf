@@ -47,19 +47,7 @@ const searchPBF = async function (dirPath, outputPath) {
         let fileNames2 = fs.readdirSync(subPath)
 
         for (let fileName2 of fileNames2) {
-          const fstat2 = await fsPromise.lstat(path.resolve(dirPath, fileName2))
-          if (fstat2.isDirectory()) {
-            let subPath2 = path.resolve(dirPath, fileName2)
-            let fileNames3 = fs.readdirSync(subPath2)
-            for (let fileName3 of fileNames3) {
-              const fstat3 = await fsPromise.lstat(path.resolve(dirPath, fileName3))
-              if (!fstat3.isDirectory()) {
-                filePathList.push(path.resolve(subPath2, fileName3))
-              }
-            }
-          } else {
-            filePathList.push(path.resolve(subPath, fileName2))
-          }
+          filePathList.push(path.resolve(subPath, fileName2))
         }
       } else {
         filePathList.push(path.resolve(dirPath, fileName))
@@ -358,27 +346,27 @@ const asyncFunc = async () => {
     // console.log(target)
 
     /*
-    let listFileName = 'list-' + target.pureFileName + '.txt'
-    let listFilePath = path.resolve(TEMP_PATH, listFileName)
-    let listFileStr = ''
-    let listFileArray = []
-
-    for (let spInfo of target.splitInfo) {
-      console.log(spInfo)
-      await splitFile(target.movieFileNamePath, spInfo, flagH264, flagVAAPI)
-
-      for (let i = 0, max = spInfo.repeat; i < max; i++) {
-        var listItemStr = "file '" + path.resolve(TEMP_PATH, spInfo.fileName) + "'\r\n"
-        listFileStr += listItemStr
-
-        listFileArray.push(path.resolve(TEMP_PATH, spInfo.fileName))
-      }
-
-      fs.writeFileSync(listFilePath, listFileStr)
-    }
-
-    await concatFile(listFilePath, target)
-    */
+     let listFileName = 'list-' + target.pureFileName + '.txt'
+     let listFilePath = path.resolve(TEMP_PATH, listFileName)
+     let listFileStr = ''
+     let listFileArray = []
+ 
+     for (let spInfo of target.splitInfo) {
+       console.log(spInfo)
+       await splitFile(target.movieFileNamePath, spInfo, flagH264, flagVAAPI)
+ 
+       for (let i = 0, max = spInfo.repeat; i < max; i++) {
+         var listItemStr = "file '" + path.resolve(TEMP_PATH, spInfo.fileName) + "'\r\n"
+         listFileStr += listItemStr
+ 
+         listFileArray.push(path.resolve(TEMP_PATH, spInfo.fileName))
+       }
+ 
+       fs.writeFileSync(listFilePath, listFileStr)
+     }
+ 
+     await concatFile(listFilePath, target)
+     */
 
     // console.log(`--File "${target.pureFileName}" Converting Success`)
 
