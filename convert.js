@@ -203,7 +203,7 @@ const concatFile = function (listFilePath, target) {
       // .inputOptions('-i')
       // .output(outputFile)
       .on('start', function (commandLine) {
-        // console.log('Spawned Ffmpeg with command: ' + commandLine)
+        console.log('Spawned Ffmpeg with command: ' + commandLine)
         console.info('Start Merging: ' + target.movieFileName)
       })
       .on('progress', function (progress) {
@@ -214,6 +214,8 @@ const concatFile = function (listFilePath, target) {
       })
       .on('error', function (err, stdout, stderr) {
         console.error('Cannot process video: ' + target.movieFileName + ' | ' + err.message)
+        console.error(stdout)
+        console.error(stderr)
         return reject(err)
       })
       .on('end', function (stdout, stderr) {
@@ -327,12 +329,12 @@ const asyncFunc = async () => {
 
     console.log(`--File "${target.pureFileName}" Converting Success`)
 
-    // await fsPromise.unlink(listFilePath)
-    // for (let spInfo of target.splitInfo) {
-    //   await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
-    // }
+    await fsPromise.unlink(listFilePath)
+    for (let spInfo of target.splitInfo) {
+      await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
+    }
 
-    // processedFileInfo.fileName[target.pureFileName] = true
+    processedFileInfo.fileName[target.pureFileName] = true
   }
 }
 
