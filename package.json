@@ -23,6 +23,7 @@
   "homepage": "https://github.com/kunbai/split-merge-pbf#readme",
   "dependencies": {
     "commander": "^2.20.0",
+    "ffmpeg-remix": "^0.1.0",
     "fluent-ffmpeg": "^2.1.2",
     "gearman": "^2.1.0",
     "moment": "^2.24.0"

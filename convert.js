@@ -156,8 +156,8 @@ const splitFile = function (movieFileNamePath, spInfo, flagH264, flagVAAPI) {
     var command = new FfmpegCommand(movieFileNamePath)
     command.seekInput(spInfo.start).duration(spInfo.end)
 
-    // if (flagH264 && flagVAAPI) {
-    if (false) {
+    if (flagH264 && flagVAAPI) {
+      // if (false) {
       command
         .inputOptions('-hwaccel vaapi')
         .inputOptions('-hwaccel_output_format vaapi')
@@ -223,6 +223,34 @@ const concatFile = function (listFilePath, target) {
         return resolve()
       })
       .mergeToFile(target.outputFile)
+  })
+}
+
+const remix = function (target) {
+  return new Promise((resolve, reject) => {
+    let ffmpegRemix = require('ffmpeg-remix')
+    let input = []
+    for (let spInfo of target.splitInfo) {
+      for (let i = 0, max = spInfo.repeat; i < max; i++) {
+        input.push({
+          source: target.movieFileNamePath,
+          start: spInfo.start,
+          duration: spInfo.end,
+        })
+      }
+    }
+
+    ffmpegRemix(
+      {
+        output: target.outputFile,
+        input: input,
+        limit: 5,
+      },
+      function (err, result) {
+        if (err) return reject(err)
+        return resolve(result)
+      }
+    )
   })
 }
 
@@ -305,13 +333,18 @@ const asyncFunc = async () => {
       if (meta.codec_name === 'h264') flagH264 = true
     })
 
+    let ret = await remix(target)
+    console.log(ret)
+
     // console.log(metadata)
 
     // console.log(target)
 
+    /*
     let listFileName = 'list-' + target.pureFileName + '.txt'
     let listFilePath = path.resolve(TEMP_PATH, listFileName)
     let listFileStr = ''
+    let listFileArray = []
 
     for (let spInfo of target.splitInfo) {
       console.log(spInfo)
@@ -320,19 +353,22 @@ const asyncFunc = async () => {
       for (let i = 0, max = spInfo.repeat; i < max; i++) {
         var listItemStr = "file '" + path.resolve(TEMP_PATH, spInfo.fileName) + "'\r\n"
         listFileStr += listItemStr
+
+        listFileArray.push(path.resolve(TEMP_PATH, spInfo.fileName))
       }
 
       fs.writeFileSync(listFilePath, listFileStr)
     }
 
     await concatFile(listFilePath, target)
+    */
 
-    console.log(`--File "${target.pureFileName}" Converting Success`)
+    // console.log(`--File "${target.pureFileName}" Converting Success`)
 
-    await fsPromise.unlink(listFilePath)
-    for (let spInfo of target.splitInfo) {
-      await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
-    }
+    // await fsPromise.unlink(listFilePath)
+    // for (let spInfo of target.splitInfo) {
+    //   await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
+    // }
 
     processedFileInfo.fileName[target.pureFileName] = true
   }
