@@ -200,6 +200,7 @@ const concatFile = function (listFilePath, target) {
     command
       .inputFormat('concat')
       .inputOptions('-safe', '0')
+      .inputOptions('-i')
       // .output(outputFile)
       .on('start', function (commandLine) {
         // console.log('Spawned Ffmpeg with command: ' + commandLine)
