@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/kunbai/split-merge-pbf#readme",
   "dependencies": {
-    "async": "^3.1.0",
+    "async": "^3.2.2",
     "commander": "^2.20.0",
     "fluent-ffmpeg": "^2.1.2",
     "gearman": "^2.1.0",
