@@ -40,15 +40,19 @@ const searchPBF = async function (dirPath, outputPath) {
   let fileNames = fs.readdirSync(dirPath)
 
   for (let fileName of fileNames) {
-    const fstat = await fsPromise.lstat(path.resolve(dirPath, fileName))
-    if (fstat.isDirectory()) {
-      let subPath = path.resolve(dirPath, fileName)
-      let fileNames2 = fs.readdirSync(subPath)
+    try {
+      const fstat = await fsPromise.lstat(path.resolve(dirPath, fileName))
+      if (fstat.isDirectory()) {
+        let subPath = path.resolve(dirPath, fileName)
+        let fileNames2 = fs.readdirSync(subPath)
 
-      for (let fileName2 of fileNames2) {
-        filePathList.push(path.resolve(subPath, fileName2))
+        for (let fileName2 of fileNames2) {
+          filePathList.push(path.resolve(subPath, fileName2))
+        }
+      } else {
+        filePathList.push(path.resolve(dirPath, fileName))
       }
-    } else {
+    } catch (e) {
       filePathList.push(path.resolve(dirPath, fileName))
     }
   }
@@ -288,6 +292,7 @@ const asyncFunc = async () => {
   }
 
   // get targets
+
   const targets = await searchPBF(inputPath, outputPath)
 
   if (targets.length === 0) {
