@@ -40,16 +40,16 @@ const searchPBF = async function (dirPath, outputPath) {
   let fileNames = fs.readdirSync(dirPath)
 
   for (let fileName of fileNames) {
-    const fstat = fs.lstatSync(path.join(dirPath, fileName))
+    const fstat = fs.lstatSync(path.resolve(dirPath, fileName))
     if (fstat.isDirectory()) {
-      let subPath = path.join(dirPath, fileName)
+      let subPath = path.resolve(dirPath, fileName)
       let fileNames2 = fs.readdirSync(subPath)
 
       for (let fileName2 of fileNames2) {
-        filePathList.push(path.join(subPath, fileName2))
+        filePathList.push(path.resolve(subPath, fileName2))
       }
     } else {
-      filePathList.push(path.join(dirPath, fileName))
+      filePathList.push(path.resolve(dirPath, fileName))
     }
   }
 
@@ -60,14 +60,14 @@ const searchPBF = async function (dirPath, outputPath) {
       const pureFileName = path.basename(fileName, '.pbf')
       var movieFileName = null
       for (let i = 0, max = SUPPORT_EXT.length; i < max; i++) {
-        if (fs.existsSync(path.join(path.dirname(fileName), pureFileName + SUPPORT_EXT[i]))) {
+        if (fs.existsSync(path.resolve(path.dirname(fileName), pureFileName + SUPPORT_EXT[i]))) {
           movieFileName = pureFileName + SUPPORT_EXT[i]
           let target = {
-            movieFileNamePath: path.join(path.dirname(fileName), movieFileName),
+            movieFileNamePath: path.resolve(path.dirname(fileName), movieFileName),
             movieFileName: movieFileName,
             pureFileName: pureFileName,
             pbfFilePath: fileName,
-            outputFile: path.join(outputPath, `${pureFileName}-clip.mp4`),
+            outputFile: path.resolve(outputPath, `${pureFileName}-clip.mp4`),
           }
           targets.push(target)
           break
@@ -187,7 +187,7 @@ const splitFile = function (movieFileNamePath, spInfo, flagH264, flagVAAPI) {
         console.info('Split succeeded: ' + spInfo.fileName)
         return resolve()
       })
-      .output(path.join(TEMP_PATH, spInfo.fileName))
+      .output(path.resolve(TEMP_PATH, spInfo.fileName))
       .renice(15)
       .run()
   })
@@ -200,7 +200,7 @@ const concatFile = function (listFilePath, target) {
     command
       .inputFormat('concat')
       .inputOptions('-safe', '0')
-      .inputOptions('-i')
+      // .inputOptions('-i')
       // .output(outputFile)
       .on('start', function (commandLine) {
         // console.log('Spawned Ffmpeg with command: ' + commandLine)
@@ -309,26 +309,30 @@ const asyncFunc = async () => {
 
     let listFileName = 'list-' + target.pureFileName + '.txt'
     let listFilePath = path.resolve(TEMP_PATH, listFileName)
+    let listFileStr = ''
 
     for (let spInfo of target.splitInfo) {
+      console.log(spInfo)
       await splitFile(target.movieFileNamePath, spInfo, flagH264, flagVAAPI)
 
       for (let i = 0, max = spInfo.repeat; i < max; i++) {
         var listItemStr = "file '" + path.resolve(TEMP_PATH, spInfo.fileName) + "'\r\n"
-        fs.appendFileSync(listFilePath, listItemStr)
+        listFileStr += listItemStr
       }
+
+      fs.writeFileSync(listFilePath, listFileStr)
     }
 
     await concatFile(listFilePath, target)
 
     console.log(`--File "${target.pureFileName}" Converting Success`)
 
-    await fsPromise.unlink(listFilePath)
-    for (let spInfo of target.splitInfo) {
-      await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
-    }
+    // await fsPromise.unlink(listFilePath)
+    // for (let spInfo of target.splitInfo) {
+    //   await fsPromise.unlink(path.resolve(TEMP_PATH, spInfo.fileName))
+    // }
 
-    processedFileInfo.fileName[target.pureFileName] = true
+    // processedFileInfo.fileName[target.pureFileName] = true
   }
 }
 
